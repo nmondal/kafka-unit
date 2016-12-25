@@ -30,6 +30,7 @@ import kafka.utils.ZkUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.security.JaasUtils;
 import org.apache.kafka.common.serialization.StringSerializer;
@@ -261,26 +262,51 @@ public class KafkaUnit {
         }
     }
 
-    @SafeVarargs
-    public final void sendMessages(KeyedMessage<String, String> message, KeyedMessage<String, String>... messages) {
+    private synchronized KafkaProducer<String,String>  getKafkaProducer(Class keyClass, Class valueClass){
         if (producer == null) {
             Properties props = new Properties();
-            props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-            props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keyClass.getName());
+            props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, valueClass.getName());
 
             props.put("metadata.broker.list", brokerString);
             props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
             producer = new KafkaProducer<>(props);
         }
-        producer.send(message.record);
-        for ( KeyedMessage m : messages ){
-            producer.send(m.record);
+        return producer;
+    }
+
+
+    @SafeVarargs
+    public final void sendMessages(KeyedMessage<String, String> message, KeyedMessage<String, String>... messages) {
+
+        ProducerRecord<String, String> m = message.record ;
+        if ( 0 == messages.length ){
+            sendMessages(m);
+            return;
+        }
+        ProducerRecord<String, String>[] ms = new ProducerRecord[ messages.length ];
+        int i = 0;
+        for ( KeyedMessage km : messages ){
+            ms[i++] = km.record ;
+        }
+        sendMessages( m, ms);
+    }
+
+    @SafeVarargs
+    public final void sendMessages(ProducerRecord<String, String> message, ProducerRecord<String, String>... messages) {
+        producer = getKafkaProducer(StringSerializer.class, StringSerializer.class);
+        producer.send(message);
+        for ( ProducerRecord  r : messages ){
+            producer.send(r);
         }
     }
+
 
     /**
      * Set custom broker configuration.
      * See available config keys in the kafka documentation: http://kafka.apache.org/documentation.html#brokerconfigs
+     * @param configKey the kafka key to be set
+     * @param configValue the value for the key
      */
     public final void setKafkaBrokerConfig(String configKey, String configValue) {
         kafkaBrokerConfig.setProperty(configKey, configValue);
