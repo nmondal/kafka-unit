@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2014 Christopher Batey
+ * Copyright (C) 2016 Nabarun Mondal
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,6 @@
  */
 package info.batey.kafka.unit;
 
-import kafka.producer.KeyedMessage;
 import kafka.server.KafkaServerStartable;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
@@ -65,7 +65,7 @@ public class KafkaIntegrationTest {
     @Test(expected = ComparisonFailure.class)
     public void shouldThrowComparisonFailureIfMoreMessagesRequestedThanSent() throws Exception {
         //given
-        String testTopic = "TestTopic";
+        String testTopic = "TestTopicForComparisonFailure";
         kafkaUnitServer.createTopic(testTopic);
         KeyedMessage<String, String> keyedMessage = new KeyedMessage<>(testTopic, "key", "value");
 
@@ -107,7 +107,7 @@ public class KafkaIntegrationTest {
     @Test
     public void  canReadKeyedMessages() throws Exception {
         //given
-        String testTopic = "TestTopic";
+        String testTopic = "KeyedMessage";
         kafkaUnitServer.createTopic(testTopic);
         KeyedMessage<String, String> keyedMessage = new KeyedMessage<>(testTopic, "key", "value");
 
@@ -116,14 +116,14 @@ public class KafkaIntegrationTest {
 
         KeyedMessage<String, String> receivedMessage = kafkaUnitServer.readKeyedMessages(testTopic, 1).get(0);
 
-        assertEquals("Received message value is incorrect", "value", receivedMessage.message());
+        assertEquals("Received message value is incorrect", "value", receivedMessage.value());
         assertEquals("Received message key is incorrect", "key", receivedMessage.key());
         assertEquals("Received message topic is incorrect", testTopic, receivedMessage.topic());
     }
 
     private void assertKafkaServerIsAvailable(KafkaUnit server) throws TimeoutException {
         //given
-        String testTopic = "TestTopic";
+        String testTopic = "ServerAvailable";
         server.createTopic(testTopic);
         KeyedMessage<String, String> keyedMessage = new KeyedMessage<>(testTopic, "key", "value");
 

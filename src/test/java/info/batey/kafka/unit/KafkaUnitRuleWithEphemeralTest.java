@@ -1,5 +1,5 @@
-def copyrightNotice = """/*
- * Copyright (C) 2014 Christopher Batey
+/*
+ * Copyright (C) 2016 Nabarun Mondal
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,22 @@ def copyrightNotice = """/*
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-"""
+package info.batey.kafka.unit;
 
-    def srcDir = new File('src')
-    srcDir.eachFileRecurse { file ->
-        if (file.name.endsWith(".java") && !file.text.contains(copyrightNotice)) {
-            println "Adding copyright header to $file.path"
-            def newFileText = copyrightNotice + file.text;
-            file.text = newFileText;
-        }
+import org.junit.Rule;
+import org.junit.Test;
+
+/**
+ * Created by noga on 25/12/16.
+ */
+public class KafkaUnitRuleWithEphemeralTest {
+
+    @Rule
+    public KafkaUnitRule kafkaUnitRuleWithEphemeralPorts = new KafkaUnitRule();
+
+    @Test
+    public void junitRuleShouldHaveStartedKafkaWithEphemeralPorts() throws Exception {
+        KafkaUnitRuleTest.assertKafkaStartsAndSendsMessage( "Ephemeral-TestTopic",
+                kafkaUnitRuleWithEphemeralPorts.getKafkaUnit());
     }
+}

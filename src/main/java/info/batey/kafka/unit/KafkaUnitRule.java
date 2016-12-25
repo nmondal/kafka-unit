@@ -41,6 +41,7 @@ public class KafkaUnitRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
+        System.err.println("I am the rule!");
         kafkaUnit.startup();
     }
 

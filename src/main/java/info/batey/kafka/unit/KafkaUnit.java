@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2014 Christopher Batey
- *
+ * Copyright (C) 2016 Nabarun Mondal
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,20 +21,18 @@ import kafka.consumer.ConsumerConfig;
 import kafka.consumer.ConsumerTimeoutException;
 import kafka.consumer.KafkaStream;
 import kafka.javaapi.consumer.ConsumerConnector;
-import kafka.javaapi.producer.Producer;
 import kafka.message.MessageAndMetadata;
-import kafka.producer.KeyedMessage;
-import kafka.producer.ProducerConfig;
 import kafka.serializer.StringDecoder;
-import kafka.serializer.StringEncoder;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServerStartable;
 import kafka.utils.VerifiableProperties;
 import kafka.utils.ZkUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.security.JaasUtils;
-
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.ComparisonFailure;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,7 +55,7 @@ public class KafkaUnit {
     private final String brokerString;
     private int zkPort;
     private int brokerPort;
-    private Producer<String, String> producer = null;
+    private KafkaProducer<String, String> producer = null;
     private Properties kafkaBrokerConfig = new Properties();
 
     public KafkaUnit() throws IOException {
@@ -153,7 +151,13 @@ public class KafkaUnit {
         createTopic(topicName, 1);
     }
 
-    public void createTopic(String topicName, Integer numPartitions) {
+    /**
+     * Tries to create a topic
+     * @param topicName name of the topic
+     * @param numPartitions number of partitions
+     * @return true if topic creation successful, false if topic already exists
+     */
+    public boolean createTopic(String topicName, Integer numPartitions) {
         // setup
         String[] arguments = new String[9];
         arguments[0] = "--create";
@@ -172,7 +176,13 @@ public class KafkaUnit {
 
         // run
         LOGGER.info("Executing: CreateTopic " + Arrays.toString(arguments));
-        TopicCommand.createTopic(zkUtils, opts);
+        try {
+            TopicCommand.createTopic(zkUtils, opts);
+            return true ;
+        }catch (TopicExistsException te){
+            LOGGER.error("Topic : " + topicName + " , Already Exists!" );
+            return false ;
+        }
     }
 
 
@@ -255,18 +265,22 @@ public class KafkaUnit {
     public final void sendMessages(KeyedMessage<String, String> message, KeyedMessage<String, String>... messages) {
         if (producer == null) {
             Properties props = new Properties();
-            props.put("serializer.class", StringEncoder.class.getName());
+            props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+            props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
             props.put("metadata.broker.list", brokerString);
-            ProducerConfig config = new ProducerConfig(props);
-            producer = new Producer<>(config);
+            props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
+            producer = new KafkaProducer<>(props);
         }
-        producer.send(message);
-        producer.send(Arrays.asList(messages));
+        producer.send(message.record);
+        for ( KeyedMessage m : messages ){
+            producer.send(m.record);
+        }
     }
 
     /**
      * Set custom broker configuration.
-     * See avaliable config keys in the kafka documentation: http://kafka.apache.org/documentation.html#brokerconfigs
+     * See available config keys in the kafka documentation: http://kafka.apache.org/documentation.html#brokerconfigs
      */
     public final void setKafkaBrokerConfig(String configKey, String configValue) {
         kafkaBrokerConfig.setProperty(configKey, configValue);
