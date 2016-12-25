@@ -276,6 +276,25 @@ public class KafkaUnit {
     }
 
 
+    public static ProducerRecord producerRecord( Map map ){
+        String topic = (String) map.get("t");
+        Integer partition = (Integer)map.get("p");
+        Long timestamp = (Long)map.get("ts");
+        Object key = map.get("k");
+        Object value = map.get("v");
+
+        return new ProducerRecord( topic, partition, timestamp, key, value );
+    }
+
+
+    public final void sendMessages(List<Map> messages) {
+        if ( null == messages ) return;
+        for ( int i =0 ; i < messages.size(); i++ ){
+            ProducerRecord pr = producerRecord( messages.get(i));
+            sendMessages(pr);
+        }
+    }
+
     @SafeVarargs
     public final void sendMessages(KeyedMessage<String, String> message, KeyedMessage<String, String>... messages) {
 

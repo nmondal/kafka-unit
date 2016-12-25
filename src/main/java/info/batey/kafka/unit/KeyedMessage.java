@@ -18,6 +18,8 @@ package info.batey.kafka.unit;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 
+import java.util.Map;
+
 /**
  * Created by noga on 25/12/16.
  * A wrapper to wrap the old vs new style of code
