@@ -7,6 +7,7 @@ Allows you to start and stop a Kafka broker + ZooKeeper instance for unit testin
 ## Versions
 | kafka-unit | Kafka broker            | Zookeeper |
 |------------|-------------------------|-----------|
+| 0.612-SNAPSHOT| kafka_2.11:0.10.1.1  | 3.4.9     |
 | 0.6        | kafka_2.11:0.10.0.0     | 3.4.6     |
 | 0.5        | kafka_2.11:0.9.0.1      | 3.4.6     |
 | 0.4        | kafka_2.11:0.9.0.1      | 3.4.6     |
@@ -51,6 +52,7 @@ You can then write your own code to interact with Kafka or use the following met
 
 ```java
 kafkaUnitServer.createTopic(testTopic);
+// This KeyedMessage is of type : info.batey.kafka.unit.keyedMessage
 KeyedMessage<String, String> keyedMessage = new KeyedMessage<>(testTopic, "key", "value");
 kafkaUnitServer.sendMessages(keyedMessage);
 ```
@@ -88,6 +90,7 @@ public class KafkaUnitIntegrationTest {
     public void junitRuleShouldHaveStartedKafka() throws Exception {
         String testTopic = "TestTopic";
         kafkaUnitRule.getKafkaUnit().createTopic(testTopic);
+        // This KeyedMessage is of type : info.batey.kafka.unit.keyedMessage
         KeyedMessage<String, String> keyedMessage = new KeyedMessage<>(testTopic, "key", "value");
 
         kafkaUnitRule.getKafkaUnit().sendMessages(keyedMessage);
@@ -112,6 +115,7 @@ If you want to start server on specific ports, use `KafkaUnitRule(int, int)` or 
 
 ```
 Copyright 2013 Christopher Batey
+Copyright 2016 Nabarun Mondal
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
