@@ -18,17 +18,23 @@ package info.batey.kafka.unit;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Created by noga on 25/12/16.
  */
-public class KafkaUnitRuleWithEphemeralTest {
+public class EphemeralKafkaUnitRuleTest {
 
     @Rule
     public KafkaUnitRule kafkaUnitRuleWithEphemeralPorts = new KafkaUnitRule();
 
     @Test
-    public void junitRuleShouldHaveStartedKafkaWithEphemeralPorts() throws Exception {
-        KafkaUnitRuleTest.assertKafkaStartsAndSendsMessage( "Ephemeral-TestTopic",
-                kafkaUnitRuleWithEphemeralPorts.getKafkaUnit());
+    public void createDuplicateTopic(){
+        final String testTopic = "duplicate-topic-test" ;
+        assertTrue( kafkaUnitRuleWithEphemeralPorts.getKafkaUnit().createTopic(testTopic) ) ;
+        assertFalse( kafkaUnitRuleWithEphemeralPorts.getKafkaUnit().createTopic(testTopic) ) ;
     }
+
+
 }

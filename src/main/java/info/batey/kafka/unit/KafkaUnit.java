@@ -28,11 +28,13 @@ import kafka.server.KafkaServerStartable;
 import kafka.utils.VerifiableProperties;
 import kafka.utils.ZkUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.security.JaasUtils;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.ComparisonFailure;
 import org.slf4j.Logger;
@@ -148,13 +150,14 @@ public class KafkaUnit {
         return brokerPort;
     }
 
-    public void createTopic(String topicName) {
-        createTopic(topicName, 1);
+    public boolean createTopic(String topicName) {
+        return createTopic(topicName, 1);
     }
 
     /**
      * Tries to create a topic
-     * @param topicName name of the topic
+     *
+     * @param topicName     name of the topic
      * @param numPartitions number of partitions
      * @return true if topic creation successful, false if topic already exists
      */
@@ -179,10 +182,10 @@ public class KafkaUnit {
         LOGGER.info("Executing: CreateTopic " + Arrays.toString(arguments));
         try {
             TopicCommand.createTopic(zkUtils, opts);
-            return true ;
-        }catch (TopicExistsException te){
-            LOGGER.error("Topic : " + topicName + " , Already Exists!" );
-            return false ;
+            return true;
+        } catch (TopicExistsException te) {
+            LOGGER.error("Topic : " + topicName + " , Already Exists!");
+            return false;
         }
     }
 
@@ -192,7 +195,7 @@ public class KafkaUnit {
         if (zookeeper != null) zookeeper.shutdown();
     }
 
-    public List<KeyedMessage<String, String>> readKeyedMessages(final String topicName, final int expectedMessages) throws TimeoutException {
+    public List<KeyedMessage<String, String>> readKeyedMessages(final String topicName, final Integer expectedMessages) throws TimeoutException {
         return readMessages(topicName, expectedMessages, new MessageExtractor<KeyedMessage<String, String>>() {
 
             @Override
@@ -202,7 +205,7 @@ public class KafkaUnit {
         });
     }
 
-    public List<String> readMessages(String topicName, final int expectedMessages) throws TimeoutException {
+    public List<String> readMessages(String topicName, final Integer expectedMessages) throws TimeoutException {
         return readMessages(topicName, expectedMessages, new MessageExtractor<String>() {
             @Override
             public String extract(MessageAndMetadata<String, String> messageAndMetadata) {
@@ -211,7 +214,16 @@ public class KafkaUnit {
         });
     }
 
-    private <T> List<T> readMessages(String topicName, final int expectedMessages, final MessageExtractor<T> messageExtractor) throws TimeoutException {
+    public List<String> readMessages(String topicName) throws TimeoutException {
+        return readMessages(topicName, null, new MessageExtractor<String>() {
+            @Override
+            public String extract(MessageAndMetadata<String, String> messageAndMetadata) {
+                return messageAndMetadata.message();
+            }
+        });
+    }
+
+    private <T> List<T> readMessages(String topicName, final Integer expectedMessages, final MessageExtractor<T> messageExtractor) throws TimeoutException {
         ExecutorService singleThread = Executors.newSingleThreadExecutor();
         Properties consumerProperties = new Properties();
         consumerProperties.put("zookeeper.connect", zookeeperString);
@@ -241,7 +253,8 @@ public class KafkaUnit {
                 } catch (ConsumerTimeoutException e) {
                     // always gets throws reaching the end of the stream
                 }
-                if (messages.size() != expectedMessages) {
+                // only when it is non null, makes sense --> sometimes we do not know , right?
+                if (expectedMessages != null && messages.size() != expectedMessages) {
                     throw new ComparisonFailure("Incorrect number of messages returned", Integer.toString(expectedMessages),
                             Integer.toString(messages.size()));
                 }
@@ -262,7 +275,7 @@ public class KafkaUnit {
         }
     }
 
-    private synchronized KafkaProducer<String,String>  getKafkaProducer(Class keyClass, Class valueClass){
+    private synchronized KafkaProducer<String, String> getKafkaProducer(Class keyClass, Class valueClass) {
         if (producer == null) {
             Properties props = new Properties();
             props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, keyClass.getName());
@@ -276,59 +289,131 @@ public class KafkaUnit {
     }
 
 
-    public static ProducerRecord producerRecord( Map map ){
+    public static ProducerRecord producerRecord(Map map) {
         String topic = (String) map.get("t");
-        Integer partition = (Integer)map.get("p");
-        Long timestamp = (Long)map.get("ts");
+        Integer partition = (Integer) map.get("p");
+        Long timestamp = (Long) map.get("ts");
         Object key = map.get("k");
         Object value = map.get("v");
 
-        return new ProducerRecord( topic, partition, timestamp, key, value );
+        return new ProducerRecord(topic, partition, timestamp, key, value);
+    }
+
+    public static Map createRecordMap(String topic, String key, String value, Integer partition, Long timeStamp) {
+        Map m = new HashMap();
+        m.put("t", topic);
+        m.put("k", key);
+        m.put("v", value);
+        if (partition != null) {
+            m.put("p", partition);
+        }
+        if (timeStamp != null) {
+            m.put("ts", timeStamp);
+        }
+        return m;
+    }
+
+    public static Map createRecordMap(String topic, String key, String value) {
+        return createRecordMap( topic, key, value, null, null);
     }
 
 
     public final void sendMessages(List<Map> messages) {
-        if ( null == messages ) return;
-        for ( int i =0 ; i < messages.size(); i++ ){
-            ProducerRecord pr = producerRecord( messages.get(i));
+        if (null == messages) return;
+        for (int i = 0; i < messages.size(); i++) {
+            ProducerRecord pr = producerRecord(messages.get(i));
             sendMessages(pr);
         }
     }
 
     @SafeVarargs
-    public final void sendMessages(KeyedMessage<String, String> message, KeyedMessage<String, String>... messages) {
+    public final void sendMessages(KeyedMessage<String, String>... messages) {
+        if ( messages == null ) return;
 
-        ProducerRecord<String, String> m = message.record ;
-        if ( 0 == messages.length ){
-            sendMessages(m);
-            return;
-        }
-        ProducerRecord<String, String>[] ms = new ProducerRecord[ messages.length ];
+        ProducerRecord<String, String>[] ms = new ProducerRecord[messages.length];
         int i = 0;
-        for ( KeyedMessage km : messages ){
-            ms[i++] = km.record ;
+        for (KeyedMessage km : messages) {
+            ms[i++] = km.record;
         }
-        sendMessages( m, ms);
+        sendMessages(ms);
     }
 
     @SafeVarargs
-    public final void sendMessages(ProducerRecord<String, String> message, ProducerRecord<String, String>... messages) {
+    public final void sendMessages(ProducerRecord<String, String>... messages) {
+        if ( messages == null ) return;
+
         producer = getKafkaProducer(StringSerializer.class, StringSerializer.class);
-        producer.send(message);
-        for ( ProducerRecord  r : messages ){
+        for (ProducerRecord r : messages) {
             producer.send(r);
         }
     }
 
 
+    @SafeVarargs
+    public final void sendMessages(final String topic, final String... messages) {
+        if ( messages == null ) return;
+        producer = getKafkaProducer(StringSerializer.class, StringSerializer.class);
+        for (String m : messages) {
+            producer.send( new ProducerRecord<String, String>( topic, m ) );
+        }
+    }
+
     /**
      * Set custom broker configuration.
      * See available config keys in the kafka documentation: http://kafka.apache.org/documentation.html#brokerconfigs
-     * @param configKey the kafka key to be set
+     *
+     * @param configKey   the kafka key to be set
      * @param configValue the value for the key
      */
     public final void setKafkaBrokerConfig(String configKey, String configValue) {
         kafkaBrokerConfig.setProperty(configKey, configValue);
+    }
+
+
+    Properties producerDefault() {
+        Properties props = new Properties();
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
+        return props;
+    }
+
+    KafkaProducer<String, String> producer(Properties props) {
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
+        return new KafkaProducer<>(props);
+    }
+
+    KafkaProducer<String, String> producer() {
+        return producer(producerDefault());
+    }
+
+
+    Properties consumerDefault() {
+        Properties props = new Properties();
+        props.put(org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                StringDeserializer.class.getCanonicalName());
+        props.put(org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                StringDeserializer.class.getCanonicalName());
+        props.put(org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
+        props.put(org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG, "group-" + System.nanoTime());
+        props.put("zookeeper.connect", zookeeperString);
+        props.put("socket.timeout.ms", "5000");
+        props.put("consumer.id", "kafka-unit-test" + String.valueOf(System.nanoTime()));
+        props.put("auto.offset.reset", "earliest");
+        props.put("consumer.timeout.ms", "5000");
+
+        return props;
+    }
+
+    KafkaConsumer<String, String> consumer(Properties props) {
+        // change only which are necessary
+        props.put(org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
+        props.put("zookeeper.connect", zookeeperString);
+        return new KafkaConsumer<>(props);
+    }
+
+    KafkaConsumer<String, String> consumer() {
+        return consumer(consumerDefault());
     }
 
     private interface MessageExtractor<T> {

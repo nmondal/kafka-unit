@@ -24,26 +24,40 @@ import static org.junit.Assert.assertEquals;
 
 public class KafkaUnitRuleTest {
 
-    public  static void assertKafkaStartsAndSendsMessage(final String testTopic, final KafkaUnit kafkaUnit) throws Exception {
-        //given
-        kafkaUnit.createTopic(testTopic);
-        KeyedMessage<String, String> keyedMessage = new KeyedMessage<>(testTopic, "key", "value");
-
-        //when
-        kafkaUnit.sendMessages(keyedMessage);
-        List<String> messages = kafkaUnit.readMessages(testTopic, 1);
-
-        //then
-        assertEquals(Arrays.asList("value"), messages);
-
-    }
-
     @Rule
     public KafkaUnitRule kafkaUnitRule = new KafkaUnitRule(6000, 6001);
 
     @Test
-    public void junitRuleShouldHaveStartedKafka() throws Exception {
-        assertKafkaStartsAndSendsMessage("SpecifiedPort-TestTopic", kafkaUnitRule.getKafkaUnit());
+    public void produceMapAsMessage() throws Exception{
+        // Get Unit
+        KafkaUnit kafkaUnit = kafkaUnitRule.getKafkaUnit();
+        final String testTopic = "maps-as-messages-test" ;
+        //given
+        kafkaUnit.createTopic(testTopic);
+        // list of message from map
+        List l = Arrays.asList( KafkaUnit.createRecordMap( testTopic, "key", "value" ) );
+        // send one
+        kafkaUnit.sendMessages(l);
+        // get back
+        List<String> messages = kafkaUnit.readMessages( testTopic );
+        assertEquals( 1 , messages.size() );
+        assertEquals( "value", messages.get(0) );
     }
 
+
+    @Test
+    public void sendAndReceiveMultipleMessages() throws Exception {
+        final String testTopic = "send-receive-multiple-message-test" ;
+        // Get Unit
+        KafkaUnit kafkaUnit = kafkaUnitRule.getKafkaUnit();
+        //given
+        kafkaUnit.createTopic(testTopic);
+        // send
+        kafkaUnit.sendMessages(testTopic, "value1", "value2");
+        // receive ...
+        List<String> received = kafkaUnit.readMessages( testTopic );
+        assertEquals( 2, received.size());
+        assertEquals( received.get(0) , "value1" );
+        assertEquals( received.get(1) , "value2" );
+    }
 }
