@@ -370,7 +370,7 @@ public class KafkaUnit {
     }
 
 
-    Properties producerDefault() {
+    public Properties producerDefault() {
         Properties props = new Properties();
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
@@ -378,17 +378,17 @@ public class KafkaUnit {
         return props;
     }
 
-    KafkaProducer<String, String> producer(Properties props) {
+    public KafkaProducer<String, String> producer(Properties props) {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
         return new KafkaProducer<>(props);
     }
 
-    KafkaProducer<String, String> producer() {
+    public KafkaProducer<String, String> producer() {
         return producer(producerDefault());
     }
 
 
-    Properties consumerDefault() {
+    public Properties consumerDefault() {
         Properties props = new Properties();
         props.put(org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
                 StringDeserializer.class.getCanonicalName());
@@ -405,14 +405,14 @@ public class KafkaUnit {
         return props;
     }
 
-    KafkaConsumer<String, String> consumer(Properties props) {
+    public KafkaConsumer<String, String> consumer(Properties props) {
         // change only which are necessary
         props.put(org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
         props.put("zookeeper.connect", zookeeperString);
         return new KafkaConsumer<>(props);
     }
 
-    KafkaConsumer<String, String> consumer() {
+    public KafkaConsumer<String, String> consumer() {
         return consumer(consumerDefault());
     }
 

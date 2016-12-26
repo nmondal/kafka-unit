@@ -1,6 +1,6 @@
 # Kafka Unit Testing
 
-![TravisCI](https://travis-ci.org/chbatey/kafka-unit.svg?branch=master)
+![TravisCI](https://travis-ci.org/nmondal/kafka-unit.svg?branch=master)
 
 Allows you to start and stop a Kafka broker + ZooKeeper instance for unit testing applications that communicate with Kafka.
 
@@ -14,13 +14,13 @@ Allows you to start and stop a Kafka broker + ZooKeeper instance for unit testin
 | 0.3        | kafka_2.11:0.8.2.2      | 3.4.6     |
 | 0.2        | kafka_2.11:0.8.2.1      | 3.4.6     |
 
-## Maven central
+## Maven ( you have to build ) 
 
 ```xml
 <dependency>
     <groupId>info.batey.kafka</groupId>
     <artifactId>kafka-unit</artifactId>
-    <version>0.6</version>
+    <version>0.612-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -75,6 +75,29 @@ props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaUnitServer.getKafkaConne
 
 Producer<Long, String> producer = new KafkaProducer<>(props);
 ```
+Another much clean way of creating producer and consumer are :
+
+```java
+KafkaProducer<String, String> producer = kafkaUnitServer.producer() ;
+KafkaConsumer<String, String> consumer = kafkaUnitServer.consumer() ; 
+```
+If you want to set your own custom properties, then :
+
+```java
+Properties props = new Properties();
+// set properties... 
+// now create producer/consumer 
+KafkaProducer<String, String> producer = kafkaUnitServer.producer(props) ;
+```
+
+## Overloaded send 
+`sendMessages` is heavily overloaded. Thus, the most easy way to send some messages are by using :
+
+```java
+// send message[s] on topic topicName, 
+kafkaUnitServer.sendMessages( topicName, message1, message2, ... ) 
+```
+
 
 ## Using the JUnit Rule
 
@@ -130,3 +153,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
+### Pending Works
+* Supporting arbitrary type of (key,value)
+* Integration with spring / play  
