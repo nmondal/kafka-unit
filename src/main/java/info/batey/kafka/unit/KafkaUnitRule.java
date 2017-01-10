@@ -19,10 +19,16 @@ import org.junit.rules.ExternalResource;
 
 import java.io.IOException;
 
+/**
+ * JUnit Rule Style for Kafka
+ */
 public class KafkaUnitRule extends ExternalResource {
 
     private final KafkaUnit kafkaUnit;
 
+    /**
+     * Ephemeral style creation
+     */
     public KafkaUnitRule() {
         try {
             this.kafkaUnit = new KafkaUnit();
@@ -31,10 +37,20 @@ public class KafkaUnitRule extends ExternalResource {
         }
     }
 
+    /**
+     * Creation using zookeeper port and kafka port
+     * @param zkPort the zookeeper port
+     * @param kafkaPort kafka port
+     */
     public KafkaUnitRule(int zkPort, int kafkaPort) {
         this.kafkaUnit = new KafkaUnit(zkPort, kafkaPort);
     }
 
+    /**
+     * Creating using connection strings
+     * @param zkConnectionString zookeeper connection string
+     * @param kafkaConnectionString kafka connection string
+     */
     public KafkaUnitRule(String zkConnectionString, String kafkaConnectionString) {
         this.kafkaUnit = new KafkaUnit(zkConnectionString, kafkaConnectionString);
     }
@@ -49,14 +65,26 @@ public class KafkaUnitRule extends ExternalResource {
         kafkaUnit.shutdown();
     }
 
+    /**
+     * Gets the ZooKeeper port
+     * @return ZooKeeper port
+     */
     public int getZkPort() {
         return kafkaUnit.getZkPort();
     }
 
+    /**
+     * Gets the Kafka port
+     * @return Kafka port
+     */
     public int getKafkaPort() {
         return kafkaUnit.getBrokerPort();
     }
 
+    /**
+     * Gets the underlying KafkaUnit
+     * @return
+     */
     public KafkaUnit getKafkaUnit() {
         return kafkaUnit;
     }

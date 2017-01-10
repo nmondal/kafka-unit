@@ -47,6 +47,9 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.*;
 
+/**
+ * The class which we need to create to have local kafka
+ */
 public class KafkaUnit {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaUnit.class);
@@ -61,10 +64,19 @@ public class KafkaUnit {
     private KafkaProducer<String, String> producer = null;
     private Properties kafkaBrokerConfig = new Properties();
 
+    /**
+     * Create a KafkaUnit in Ephemeral mode
+     * @throws IOException
+     */
     public KafkaUnit() throws IOException {
         this(getEphemeralPort(), getEphemeralPort());
     }
 
+    /**
+     * Create a KafkaUnit from args
+     * @param zkPort port on which zookeeper would run
+     * @param brokerPort port on which broker would run
+     */
     public KafkaUnit(int zkPort, int brokerPort) {
         this.zkPort = zkPort;
         this.brokerPort = brokerPort;
@@ -72,6 +84,11 @@ public class KafkaUnit {
         this.brokerString = "localhost:" + brokerPort;
     }
 
+    /**
+     * Create a KafkaUnit from args
+     * @param zkConnectionString zookeeper connection string
+     * @param kafkaConnectionString kafka broker connection string
+     */
     public KafkaUnit(String zkConnectionString, String kafkaConnectionString) {
         this(parseConnectionString(zkConnectionString), parseConnectionString(kafkaConnectionString));
     }
@@ -106,6 +123,9 @@ public class KafkaUnit {
         }
     }
 
+    /**
+     * Starts up the infra
+     */
     public void startup() {
         zookeeper = new Zookeeper(zkPort);
         zookeeper.startup();
@@ -138,18 +158,35 @@ public class KafkaUnit {
         broker.startup();
     }
 
+    /**
+     * Gets the broker string
+     * @return gets the kafka broker string
+     */
     public String getKafkaConnect() {
         return brokerString;
     }
 
+    /**
+     * Gets the zookeeper port
+     * @return zookeeper port
+     */
     public int getZkPort() {
         return zkPort;
     }
 
+    /**
+     * Gets the kafka broker port
+     * @return kafka broker port
+     */
     public int getBrokerPort() {
         return brokerPort;
     }
 
+    /**
+     * Creates a topic
+     * @param topicName name of the topic
+     * @return true if successfully created , false otherwise
+     */
     public boolean createTopic(String topicName) {
         return createTopic(topicName, 1);
     }
@@ -189,12 +226,21 @@ public class KafkaUnit {
         }
     }
 
-
+    /**
+     * Shuts down the system
+     */
     public void shutdown() {
         if (broker != null) broker.shutdown();
         if (zookeeper != null) zookeeper.shutdown();
     }
 
+    /**
+     * Reads the messages
+     * @param topicName name of the topic
+     * @param expectedMessages expected number of messages
+     * @return list of keyed messages
+     * @throws TimeoutException in case it times out
+     */
     public List<KeyedMessage<String, String>> readKeyedMessages(final String topicName, final Integer expectedMessages) throws TimeoutException {
         return readMessages(topicName, expectedMessages, new MessageExtractor<KeyedMessage<String, String>>() {
 
@@ -205,6 +251,13 @@ public class KafkaUnit {
         });
     }
 
+    /**
+     * Read messages as list of strings
+     * @param topicName name of the topic
+     * @param expectedMessages expected number of messages
+     * @return list of message values
+     * @throws TimeoutException in case it times out
+     */
     public List<String> readMessages(String topicName, final Integer expectedMessages) throws TimeoutException {
         return readMessages(topicName, expectedMessages, new MessageExtractor<String>() {
             @Override
@@ -214,6 +267,12 @@ public class KafkaUnit {
         });
     }
 
+    /**
+     * Read message as string
+     * @param topicName name of the topic
+     * @return list of messages as strings
+     * @throws TimeoutException in case times out
+     */
     public List<String> readMessages(String topicName) throws TimeoutException {
         return readMessages(topicName, null, new MessageExtractor<String>() {
             @Override
@@ -289,6 +348,17 @@ public class KafkaUnit {
     }
 
 
+    /**
+     * Creates a ProducerRecord from a Map having
+     *   key , value
+     *   "t" , topic name
+     *   "p" , partition number
+     *   "ts", time stamp
+     *   "k" , key
+     *   "v" , value
+     * @param map the input map
+     * @return the record
+     */
     public static ProducerRecord producerRecord(Map map) {
         String topic = (String) map.get("t");
         Integer partition = (Integer) map.get("p");
@@ -299,6 +369,15 @@ public class KafkaUnit {
         return new ProducerRecord(topic, partition, timestamp, key, value);
     }
 
+    /**
+     * Creates a map from constituents to create ProducerRecord
+     * @param topic name of the topic
+     * @param key key
+     * @param value value of the message
+     * @param partition partition number
+     * @param timeStamp timestamp
+     * @return a map to be consumed by producerRecord() method
+     */
     public static Map createRecordMap(String topic, String key, String value, Integer partition, Long timeStamp) {
         Map m = new HashMap();
         m.put("t", topic);
@@ -313,11 +392,23 @@ public class KafkaUnit {
         return m;
     }
 
+    /**
+     * Creates a map from constituents to create ProducerRecord
+     * @param topic name of the topic
+     * @param key key
+     * @param value value of the message
+     * partition : null
+     * timeStamp : null
+     * @return a map to be consumed by producerRecord() method
+     */
     public static Map createRecordMap(String topic, String key, String value) {
         return createRecordMap( topic, key, value, null, null);
     }
 
-
+    /**
+     * Send messages
+     * @param messages list of maps from which individual producer records would be created
+     */
     public final void sendMessages(List<Map> messages) {
         if (null == messages) return;
         for (int i = 0; i < messages.size(); i++) {
@@ -326,6 +417,10 @@ public class KafkaUnit {
         }
     }
 
+    /**
+     * Send one ore more messages
+     * @param messages KeyedMessages
+     */
     @SafeVarargs
     public final void sendMessages(KeyedMessage<String, String>... messages) {
         if ( messages == null ) return;
@@ -338,6 +433,10 @@ public class KafkaUnit {
         sendMessages(ms);
     }
 
+    /**
+     * Send one ore more messages
+     * @param messages ProducerRecord
+     */
     @SafeVarargs
     public final void sendMessages(ProducerRecord<String, String>... messages) {
         if ( messages == null ) return;
@@ -348,7 +447,11 @@ public class KafkaUnit {
         }
     }
 
-
+    /**
+     * Send messages on
+     * @param topic name of the topic
+     * @param messages String Messages, key would be null
+     */
     @SafeVarargs
     public final void sendMessages(final String topic, final String... messages) {
         if ( messages == null ) return;
@@ -370,6 +473,11 @@ public class KafkaUnit {
     }
 
 
+    /**
+     * Gets the Producer Default properties
+     * To create a Producer from the Kafka Unit
+     * @return Producer Default properties
+     */
     public Properties producerDefault() {
         Properties props = new Properties();
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getCanonicalName());
@@ -378,16 +486,29 @@ public class KafkaUnit {
         return props;
     }
 
+    /**
+     * Create a producer from the Properties passed
+     * @param props the properties
+     * @return a KafkaProducer object
+     */
     public KafkaProducer<String, String> producer(Properties props) {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
         return new KafkaProducer<>(props);
     }
 
+    /**
+     * Use default properties to get the default KafkaProducer
+     * @return KafkaProducer
+     */
     public KafkaProducer<String, String> producer() {
         return producer(producerDefault());
     }
 
 
+    /**
+     * Default Properties for the Consumer
+     * @return properties for the consumer
+     */
     public Properties consumerDefault() {
         Properties props = new Properties();
         props.put(org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
@@ -405,6 +526,11 @@ public class KafkaUnit {
         return props;
     }
 
+    /**
+     * Gets a KafkaConsumer from the properties
+     * @param props the properties
+     * @return KafkaConsumer
+     */
     public KafkaConsumer<String, String> consumer(Properties props) {
         // change only which are necessary
         props.put(org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
@@ -412,6 +538,10 @@ public class KafkaUnit {
         return new KafkaConsumer<>(props);
     }
 
+    /**
+     * Gets the default KafkaConsumer
+     * @return KafkaConsumer
+     */
     public KafkaConsumer<String, String> consumer() {
         return consumer(consumerDefault());
     }

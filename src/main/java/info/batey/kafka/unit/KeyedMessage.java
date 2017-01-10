@@ -23,7 +23,7 @@ import java.util.Map;
 /**
  * Created by noga on 25/12/16.
  * A wrapper to wrap the old vs new style of code
- * in Kafka
+ * in Kafka, as KeyedMessage is deprecated
  */
 public class KeyedMessage<K,V> {
 
@@ -89,9 +89,8 @@ public class KeyedMessage<K,V> {
         if (this == o)
             return true;
         if ( o instanceof ProducerRecord ){ return o.equals(record); }
-        if ( o instanceof KeyedMessage ){ return  record.equals( ((KeyedMessage)o).record ); }
-
-        return false;
+        return ( o instanceof KeyedMessage ) &&
+                record.equals( ((KeyedMessage)o).record ) ;
     }
 
     @Override
