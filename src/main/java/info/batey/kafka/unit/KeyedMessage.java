@@ -27,19 +27,49 @@ import java.util.Map;
  */
 public class KeyedMessage<K,V> {
 
+    /**
+     * The underlying record
+     */
     public final ProducerRecord<K,V> record;
 
+    /**
+     * Creates a KeyedMessage
+     * @param topic the topic
+     * @param partition the number
+     * @param timestamp time for the record
+     * @param key of the record
+     * @param value of the record
+     */
     public KeyedMessage(String topic, Integer partition, Long timestamp, K key, V value){
         record = new ProducerRecord<>(topic,partition,timestamp,key,value);
     }
+
+    /**
+     * Creates a KeyedMessage with null timestamp
+     * @param topic the topic
+     * @param partition number
+     * @param key attribute
+     * @param value of the record
+     */
     public KeyedMessage( String topic, Integer partition, K key, V value ){
         this( topic, partition, null, key, value);
     }
 
+    /**
+     * Creates a KeyedMessage with null partition and timestamp
+     * @param topic the topic
+     * @param key attribute
+     * @param value of the record
+     */
     public KeyedMessage(String topic, K key, V value) {
         this(topic, null, key, value);
     }
 
+    /**
+     * Creates a KeyedMessage with topic and value, rest all are null
+     * @param topic the topic
+     * @param value of the record
+     */
     public KeyedMessage(String topic, V value) {
         this(topic, null, value);
     }
