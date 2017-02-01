@@ -491,7 +491,7 @@ public class KafkaUnit {
      * @param props the properties
      * @return a KafkaProducer object
      */
-    public KafkaProducer<String, String> producer(Properties props) {
+    public KafkaProducer producer(Properties props) {
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
         return new KafkaProducer<>(props);
     }
@@ -500,7 +500,7 @@ public class KafkaUnit {
      * Use default properties to get the default KafkaProducer
      * @return KafkaProducer
      */
-    public KafkaProducer<String, String> producer() {
+    public KafkaProducer producer() {
         return producer(producerDefault());
     }
 
@@ -531,7 +531,7 @@ public class KafkaUnit {
      * @param props the properties
      * @return KafkaConsumer
      */
-    public KafkaConsumer<String, String> consumer(Properties props) {
+    public KafkaConsumer consumer(Properties props) {
         // change only which are necessary
         props.put(org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, getKafkaConnect());
         props.put("zookeeper.connect", zookeeperString);
@@ -542,7 +542,7 @@ public class KafkaUnit {
      * Gets the default KafkaConsumer
      * @return KafkaConsumer
      */
-    public KafkaConsumer<String, String> consumer() {
+    public KafkaConsumer consumer() {
         return consumer(consumerDefault());
     }
 
